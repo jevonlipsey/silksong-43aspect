@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StartupObject>WasmEntry</StartupObject>
+    <RootNamespace>Silksong43.Wasm</RootNamespace>
+    <AssemblyName>PatcherWasm</AssemblyName>
+    <!-- no workloads: interpreter only, no AOT, no native relink -->
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <BlazorEnableCompression>true</BlazorEnableCompression>
+    <WasmFingerprintAssets>false</WasmFingerprintAssets>
+    <TrimMode>partial</TrimMode>
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">true</PublishTrimmed>
+    <!-- the patcher sources are linked from ../../patcher; keep the sdk from globbing them twice -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CA1416;CS8632;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS8765;CS0168;CS0219;CS0162;CS0649;CS0414</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Interop.cs" />
+    <Compile Include="../../patcher/Program.cs" Link="patcher/Program.cs" />
+    <Compile Include="../../patcher/PatchApi.cs" Link="patcher/PatchApi.cs" />
+    <Compile Include="../../verify/Checks.cs" Link="verify/Checks.cs" />
+    <Compile Include="../../verify/IlVerifier.cs" Link="verify/IlVerifier.cs" />
+    <Compile Include="../../verify/SemanticVerifier.cs" Link="verify/SemanticVerifier.cs" />
+    <Compile Include="../../verify/Simulator.cs" Link="verify/Simulator.cs" />
+    <Compile Include="../../verify/VerifyRunner.cs" Link="verify/VerifyRunner.cs" />
+  </ItemGroup>
+
+</Project>

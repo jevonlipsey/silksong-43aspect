@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Silksong 4:3 Patcher</title>
+<meta name="description" content="Patch your own copy of Hollow Knight: Silksong to fill 4:3 screens, entirely in your browser. Your file never leaves your device.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23d9531e'/%3E%3Crect x='7' y='9' width='18' height='14' rx='2' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <h1>Silksong 4:3 Patcher</h1>
+    <p class="lede">Makes Hollow Knight: Silksong fill 4:3 screens (Retroid Pocket, DroidDeck, 4:3 monitors) with no letterbox and the camera kept inside each room.</p>
+    <p class="privacy">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.7-4.7 1.4 1.4-6.1 6.1Z"/></svg>
+      <span>Everything runs locally in your browser. Your <code>Assembly-CSharp.dll</code> is never uploaded and never leaves this device.</span>
+    </p>
+  </header>
+
+  <!-- Screen-reader announcements for every state change -->
+  <div id="status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Runtime preload / load failure -->
+  <section id="runtime" class="card runtime" aria-label="Patcher status">
+    <div class="runtime-row">
+      <span id="runtime-icon" class="runtime-icon" aria-hidden="true"></span>
+      <p id="runtime-text" class="runtime-text">Loading patcher…</p>
+    </div>
+    <div id="runtime-bar" class="bar indeterminate" role="progressbar" aria-label="Loading patcher" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+    <div id="runtime-fail" class="callout bad" hidden>
+      <p id="runtime-fail-text"></p>
+    </div>
+  </section>
+
+  <main id="main">
+
+    <!-- Step 1 -->
+    <section id="view-pick" class="card" aria-labelledby="pick-title">
+      <h2 id="pick-title"><span class="step">1</span> Choose your game file</h2>
+      <p>Select the <code>Assembly-CSharp.dll</code> from your own copy of the game:</p>
+      <ul class="paths">
+        <li><span class="os">DroidDeck</span><code class="path">/root/.local/share/Steam/steamapps/common/Hollow Knight Silksong/Hollow Knight Silksong_Data/Managed/Assembly-CSharp.dll</code></li>
+        <li><span class="os">DroidDeck, SD card</span><code class="path">/mnt/droiddeck-sd/steamapps/common/Hollow Knight Silksong/Hollow Knight Silksong_Data/Managed/Assembly-CSharp.dll</code></li>
+        <li><span class="os">Windows, Steam Deck, GameNative</span><code class="path">Hollow Knight Silksong_Data/Managed/Assembly-CSharp.dll</code></li>
+      </ul>
+
+      <label id="drop" class="drop" for="file">
+        <input id="file" class="file-input" type="file" accept=".dll,application/x-msdownload,application/x-dosexec,application/vnd.microsoft.portable-executable,application/octet-stream">
+        <svg class="drop-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 7 8h3.5v6h3V8H17l-5-5ZM5 17v3h14v-3h-2v1H7v-1H5Z"/></svg>
+        <span class="drop-main">Tap to choose <span class="nowrap">Assembly-CSharp.dll</span></span>
+        <span class="drop-sub">or drag and drop it here</span>
+      </label>
+      <p class="hint">Can't select the file on Android? In the file picker's menu, switch to “All files” or “Browse”.</p>
+    </section>
+
+    <!-- Busy -->
+    <section id="view-busy" class="card busy" aria-labelledby="busy-title" hidden>
+      <div class="busy-row">
+        <span class="spinner" aria-hidden="true"></span>
+        <div>
+          <h2 id="busy-title">Patching…</h2>
+          <p id="busy-file" class="busy-file"></p>
+        </div>
+      </div>
+      <div class="bar indeterminate" aria-hidden="true"><span></span></div>
+      <p id="busy-note" class="muted">This can take a while, up to a minute or more on a phone. The page is working, so please keep this tab open.</p>
+      <p class="muted"><span id="busy-elapsed">0s</span> elapsed</p>
+    </section>
+
+    <!-- Success -->
+    <section id="view-ok" class="card ok" aria-labelledby="ok-title" hidden>
+      <h2 id="ok-title" tabindex="-1">
+        <svg class="ico ok-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.6 14.6-4-4 1.4-1.4 2.6 2.6 5.8-5.8 1.4 1.4-7.2 7.2Z"/></svg>
+        Patched and verified
+      </h2>
+      <p id="ok-verified"></p>
+
+      <dl class="hashes">
+        <div><dt>Input SHA-256</dt><dd id="ok-in-hash" class="mono"></dd></div>
+        <div><dt>Output SHA-256</dt><dd id="ok-out-hash" class="mono"></dd></div>
+      </dl>
+
+      <a id="download" class="btn primary big" href="#" download="Assembly-CSharp.dll">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v9.2l3.6-3.6L18 10l-6 6-6-6 1.4-1.4L11 12.2V3ZM5 18h14v3H5v-3Z"/></svg>
+        <span>Download <span class="nowrap">Assembly-CSharp.dll</span></span>
+      </a>
+      <p id="download-size" class="muted center"></p>
+
+      <h3>Install it</h3>
+      <ol class="steps">
+        <li>Rename your original <code>Assembly-CSharp.dll</code> to <code>Assembly-CSharp.dll.bak</code>. Keep it as your backup.</li>
+        <li>Put the downloaded <code>Assembly-CSharp.dll</code> into the same <code>Managed</code> folder.</li>
+        <li>Launch the game. It now fills a 4:3 screen at 1280x960 with no letterbox. If it was already open, fully exit and relaunch it.</li>
+      </ol>
+      <p><a class="guide-link" href="#" target="_blank" rel="noopener">Full install guide</a></p>
+      <div class="actions"><button type="button" class="btn" data-action="reset">Patch another file</button></div>
+    </section>
+
+    <!-- Failure -->
+    <section id="view-fail" class="card fail" aria-labelledby="fail-title" hidden>
+      <h2 id="fail-title" tabindex="-1">
+        <svg class="ico bad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-2h2v2Zm0-4h-2V7h2v6Z"/></svg>
+        <span id="fail-title-text"></span>
+      </h2>
+      <div id="fail-body" class="fail-body"></div>
+
+      <div id="fail-failures" hidden>
+        <h3>Checks that failed <span id="fail-count" class="muted"></span></h3>
+        <ul id="fail-list" class="faillist mono" tabindex="0" aria-label="List of failed checks"></ul>
+      </div>
+
+      <dl id="fail-hashes" class="hashes" hidden>
+        <div><dt>Input SHA-256</dt><dd id="fail-in-hash" class="mono"></dd></div>
+      </dl>
+
+      <div class="actions" id="fail-actions">
+        <button type="button" class="btn primary" id="copy-report" hidden>Copy report</button>
+        <a class="btn issues-link" id="issues-link" href="#" target="_blank" rel="noopener" hidden>Report this on GitHub</a>
+        <button type="button" class="btn" data-action="reset">Patch another file</button>
+      </div>
+      <textarea id="report-fallback" class="report-fallback mono" readonly rows="8" aria-label="Report text (select and copy)" hidden></textarea>
+      <p class="muted" id="fail-guide" hidden>Need help? See the <a class="guide-link" href="#" target="_blank" rel="noopener">install guide</a>.</p>
+    </section>
+
+    <details id="log-wrap" class="log" hidden>
+      <summary>Show full log</summary>
+      <pre id="log" class="mono" tabindex="0" aria-label="Patcher log"></pre>
+    </details>
+
+  </main>
+
+  <footer class="foot">
+    <p>Not affiliated with or endorsed by Team Cherry. It contains no game code and only modifies your own legally owned copy of the file.</p>
+    <p><a href="https://github.com/jevonlipsey/silksong-43aspect">Source on GitHub</a> · MIT · <span id="version" class="ver" hidden></span></p>
+  </footer>
+</div>
+
+<script src="patcher-runtime.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

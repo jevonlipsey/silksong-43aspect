@@ -64,8 +64,15 @@ public sealed class StubResolver : IAssemblyResolver
     {
         if (!stubs.TryGetValue(name.Name, out var a))
         {
-            a = AssemblyDefinition.CreateAssembly(new AssemblyNameDefinition(name.Name, name.Version ?? new Version(0, 0, 0, 0)), name.Name, ModuleKind.Dll);
+            // the stub's own module resolves through this resolver too: the default one probes the host's
+            // runtime directory (finds netstandard on the cli, nothing in the browser), which made the two differ
+            a = AssemblyDefinition.CreateAssembly(new AssemblyNameDefinition(name.Name, name.Version ?? new Version(0, 0, 0, 0)), name.Name,
+                new ModuleParameters { Kind = ModuleKind.Dll, AssemblyResolver = this });
             stubs[name.Name] = a;
+            // the enum stubs' underlying types (System.Int32 ...) must resolve inside the stub, not on the host
+            if (name.Name == "netstandard")
+                foreach (var n in new[] { "Object", "ValueType", "Enum", "Byte", "SByte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64" })
+                    a.MainModule.Types.Add(new TypeDefinition("System", n, TypeAttributes.Public, null));
         }
         return a;
     }

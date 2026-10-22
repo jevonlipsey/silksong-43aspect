@@ -25,12 +25,13 @@ public static class Program
         {
             Console.WriteLine("usage: patcher <Assembly-CSharp.dll> [managedDir] [outputDll]\n" +
                               "  with managedDir the full verifier runs (resolves every member against the real Unity dlls)\n" +
-                              "  without it a reference-free subset runs. output is written only if verification passes.\n" +
+                              "  without it a reference-free subset runs. '-' as managedDir means none, so the output can be given:\n" +
+                              "    patcher <dll> - <outputDll>. output is written only if verification passes.\n" +
                               "  exit codes: 0 ok, 1 verify failed/error, 3 already patched, 4 not Silksong's dll");
             return 0;
         }
         string input = args[0];
-        string? managed = args.Length > 1 ? args[1] : null;
+        string? managed = args.Length > 1 && args[1] != "-" ? args[1] : null;
         string output = args.Length > 2 ? args[2] : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(input))!, "Assembly-CSharp-43.dll");
         var bytes = File.ReadAllBytes(input);
         Console.WriteLine($"input  sha256 {Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()}");

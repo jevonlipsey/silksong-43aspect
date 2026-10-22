@@ -3,7 +3,7 @@
 Native 4:3 for *Hollow Knight: Silksong* (Team Cherry, Steam appid 1030300), part of the nova-43aspect collection.
 
 ## Status
-- **In progress.** Patcher, verifier and CLI are done and verify clean; device boot-test results are in `CLAUDE.local.md`. In-game behaviour (HUD, menus, map, gameplay camera) is NOT verified: adb input does not reach the game, so only the title screen can be screenshotted.
+- Patcher, verifier, CLI and web patcher are done. Device-tested on the Nova (boots to gameplay at 1280x960, no letterbox, HUD top-left); menus, map and tall-room camera are not checked by hand. Web patcher output is byte-identical to the CLI (`node web/test/parity.mjs --chrome`).
 
 ## Commands
 Run from the repo root.
@@ -15,6 +15,8 @@ dotnet run --project patcher -- original/Managed/Assembly-CSharp.dll original/Ma
 # verify a patched dll against the pristine one. exit 0 and "checks: 57 passed, 0 failed, 0 skipped"
 dotnet run --project verify -- Assembly-CSharp-43.dll [original.dll] [managedDir] [--reference-free]
 ```
+Reference-free (what the browser runs): `dotnet run --project patcher -- original/Managed/Assembly-CSharp.dll - out.dll` (`-` = no managedDir).
+Web: `bash tools/build_web.sh` then `node web/test/parity.mjs [--chrome]`; `web/app/index.html?mock` shows every state. `web/app/style.css` is byte-identical to the other repos'; never edit it here. Global is `Silk43`.
 Exit codes of the patcher: 0 ok, 1 verify failed/error, 3 already patched, 4 not Silksong's dll.
 Pristine inputs live in `original/Managed/` (all 152 Windows managed dlls pulled from the device, sha256 in `original/hashes.txt`, gitignored, read-only). Patch only the Windows build from the device.
 
