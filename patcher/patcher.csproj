@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>patcher</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- the verifier ships inside the patcher so every output is gated on it. verify/Program.cs
+         (the standalone harness entry point) is deliberately not linked -->
+    <Compile Include="../verify/Checks.cs" Link="verify/Checks.cs" />
+    <Compile Include="../verify/IlVerifier.cs" Link="verify/IlVerifier.cs" />
+    <Compile Include="../verify/SemanticVerifier.cs" Link="verify/SemanticVerifier.cs" />
+    <Compile Include="../verify/Simulator.cs" Link="verify/Simulator.cs" />
+    <Compile Include="../verify/VerifyRunner.cs" Link="verify/VerifyRunner.cs" />
+  </ItemGroup>
+
+</Project>
