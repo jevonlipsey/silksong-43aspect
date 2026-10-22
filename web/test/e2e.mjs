@@ -1,5 +1,5 @@
 // end-to-end: drives the real UI (web/dist/index.html, not ?mock) in headless Chrome.
-//   node web/test/e2e.mjs [--dist web/dist] [--input original/Assembly-CSharp.dll] [--shot out.png] [--expect-sha <hex>]
+//   node web/test/e2e.mjs [--dist web/dist] [--input original/Managed/Assembly-CSharp.dll] [--shot out.png] [--expect-sha <hex>]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
 const dist = path.resolve(opt('--dist', path.join(root, 'web/dist')));
-const input = path.resolve(opt('--input', path.join(root, 'original/Assembly-CSharp.dll')));
+const input = path.resolve(opt('--input', path.join(root, 'original/Managed/Assembly-CSharp.dll')));
 const shot = opt('--shot', path.join(process.env.TMPDIR || '/tmp', 'silk43-e2e.png'));
 const expect = opt('--expect-sha', null);
 if (!fs.existsSync(input)) { console.error('FAIL: input missing ' + input); process.exit(1); }
