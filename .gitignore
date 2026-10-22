@@ -1,0 +1,52 @@
+# Build output
+bin/
+obj/
+build/
+dist/
+*.user
+*.suo
+
+# Original copyrighted binaries and earlier attempts' outputs
+original/
+orig/
+verify/remote/
+
+# Decompiled game code
+decomp*/
+
+# device and game logs
+output_log.txt
+Player.log
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# web patcher build output and node tooling
+web/dist/
+web/wasm/bin/
+web/wasm/obj/
+node_modules/
+
+# python bytecode
+__pycache__/
+
+# never publish game assemblies (original or patched) or other binaries
+Assembly-CSharp*.dll
+*.dll
+*.exe
+*.pdb
+*.bak*
+*.dat
+
+# dev artifacts and device captures
+*.png
+*.jpg
+
+# personal device notes for claude code (adb serial, ssh setup); never publish
+CLAUDE.local.md
+
+# local RE output
+analysis/
+reference/
