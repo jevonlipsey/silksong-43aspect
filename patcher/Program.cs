@@ -242,47 +242,48 @@ public static class Program
         return fix;
     }
 
-    // after the game's own scene-bounds clamp (the block guarded by !AllowExitingSceneBounds) add
-    //   position.y = Fix43Y(position.y);
-    // the clamp's "in bounds" branch and fall-through both land on the SetPosition2D call, so the new
-    // block goes in front of it, and only the AllowExitingSceneBounds skip keeps jumping over it.
+    // right before SmoothDamp, adjust destination.y:
+    //   destination.y = Fix43Y(destination.y);
+    // this ensures SmoothDamp smoothly glides towards the 4:3 clamped window instead of
+    // fighting a post-smoothing snap on position.y (which causes jitter).
     static void PatchLateUpdate(TypeDefinition cc, MethodDefinition fix)
     {
         var lu = Get(cc, "LateUpdate");
         var body = lu.Body;
         var ins = body.Instructions;
-        var allow = ins.First(i => i.OpCode == OpCodes.Call && ((MethodReference)i.Operand).Name == "get_AllowExitingSceneBounds");
-        var skip = allow.Next;
-        if (skip.OpCode != OpCodes.Brtrue_S && skip.OpCode != OpCodes.Brtrue) throw new Exception("LateUpdate: unexpected shape after AllowExitingSceneBounds");
-        var join = (Instruction)skip.Operand; // ldarg.0; call get_transform; ldloc position; ... SetPosition2D
-        if (join.OpCode != OpCodes.Ldarg_0) throw new Exception("LateUpdate: unexpected join point");
-        // the Vector3 local named position is the one the clamp stores through
-        var pos = ((VariableReference)ins.First(i => (i.OpCode == OpCodes.Ldloca_S || i.OpCode == OpCodes.Ldloca) && i.Next.OpCode == OpCodes.Ldc_R4 && (float)i.Next.Operand == 8.3f).Operand);
+        var destField = cc.Fields.First(f => f.Name == "destination");
         var yField = ins.First(i => i.OpCode == OpCodes.Stfld && ((FieldReference)i.Operand).Name == "y" && ((FieldReference)i.Operand).DeclaringType.Name == "Vector3").Operand as FieldReference;
-        // retarget branches that reach the join point from inside the clamp block to the new code;
-        // the AllowExitingSceneBounds skip keeps its target
+
+        // find KeepWithinSceneBounds call on destination
+        var keepCall = ins.First(i => i.OpCode == OpCodes.Call && ((MethodReference)i.Operand).Name == "KeepWithinSceneBounds");
+        var join = keepCall.Next.Next; // instruction right after stfld destination: ldloca.s V_0 (IL_0366)
+
         var il = body.GetILProcessor();
-        var first = il.Create(OpCodes.Ldloca_S, (VariableDefinition)pos);
+        // ldarg.0; ldarg.0; ldarg.0; ldflda destination; ldfld y; call Fix43Y; stfld y
+        // wait: destination is a Vector3 field on 'this' (CameraController).
+        // to set destination.y:
+        // ldarg.0; ldflda destination; ldarg.0; ldarg.0; ldflda destination; ldfld y; call Fix43Y; stfld y
+        var first = il.Create(OpCodes.Ldarg_0);
         var newCode = new List<Instruction>
         {
             first,
+            il.Create(OpCodes.Ldflda, destField),
             il.Create(OpCodes.Ldarg_0),
-            il.Create(OpCodes.Ldloca_S, (VariableDefinition)pos),
-            il.Create(OpCodes.Ldfld, yField!),
+            il.Create(OpCodes.Ldarg_0),
+            il.Create(OpCodes.Ldflda, destField),
+            il.Create(OpCodes.Ldfld, yField),
             il.Create(OpCodes.Call, fix),
-            il.Create(OpCodes.Stfld, yField!),
+            il.Create(OpCodes.Stfld, yField),
         };
-        // ldloca position; ldarg.0; ldloca position; ldfld y; call Fix43Y; stfld y  => leaves position.y = Fix43Y(position.y)
-        int retargeted = 0;
+
+        // retarget any branches that jumped to join (e.g. bne.un.s IL_0366 when mode is not FOLLOWING/LOCKED)
         foreach (var i in ins)
         {
-            if (i == skip) continue;
             if (i.Operand == join && (i.OpCode.FlowControl == FlowControl.Cond_Branch || i.OpCode.FlowControl == FlowControl.Branch))
             {
-                i.Operand = first; retargeted++;
+                i.Operand = first;
             }
         }
-        if (retargeted == 0) throw new Exception("LateUpdate: no branch into the join point");
         foreach (var n in newCode) il.InsertBefore(join, n);
     }
 }

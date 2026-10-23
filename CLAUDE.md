@@ -42,7 +42,7 @@ It changes **nothing** in `CameraController`/`CameraLockArea`/`CameraTarget` (so
 Six methods differ from vanilla, nothing else (the verifier proves it):
 1. `ForceCameraAspect.AutoScaleViewportShared`: `ldc.r4 1.6` -> `4/3`. At 1280x960 the viewport is the full screen, `heightMult = 4/3`. (Narrower than 4:3 still letterboxes, which is right.)
 2. `ForceCameraAspect.AutoScaleViewport`: `fov * heightMult` -> `Nova43Camera.ScaleFov(fov, heightMult)` = `2*atan(tan(fov/2)*mult)`. Linear scaling would make the view 1.41x taller instead of 1.33x at 4:3, and the bounds fix needs the exact factor. At 16:10 the difference was small, which is why the game gets away with it.
-3. `CameraController.LateUpdate`: after the game's own scene clamp (the `!AllowExitingSceneBounds` block) it runs `position.y = Fix43Y(position.y)`.
+3. `CameraController.LateUpdate`: after KeepWithinSceneBounds and mode checks on `destination`, clamps `destination.y = Fix43Y(destination.y)` so `SmoothDamp` smoothly decelerates into the 4:3 bound without post-smoothing snapping/jittering.
 4. new `CameraController.Fix43Y(y)`: in `LOCKED` mode uses `[yLockMin, yLockMax]`, otherwise `[8.3, yLimit]`, and calls
 5. new `Nova43Camera.AdjustY(y, lo, hi, mult)`: shrinks the window by `d = 8.3*(mult-1)` on each side (so the taller view shows exactly what the 16:9 view would have), and if the window is shorter than the view centres on it. `mult <= 1` (16:9 and wider) is an exact no-op.
 6. new `Nova43Camera.ScaleFov`.

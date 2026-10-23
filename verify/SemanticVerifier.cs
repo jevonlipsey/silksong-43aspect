@@ -96,21 +96,21 @@ public sealed class SemanticVerifier
         else
         {
             var a = Diff.Sigs(lo); var b = Diff.Sigs(lp);
-            checks.Check(b.Count == a.Count + 6, $"LateUpdate grew by exactly 6 instructions ({a.Count} -> {b.Count})");
-            // find the inserted block: the 6 consecutive patched instructions that call Fix43Y
+            checks.Check(b.Count == a.Count + 8, $"LateUpdate grew by exactly 8 instructions ({a.Count} -> {b.Count})");
+            // find the inserted block: the 8 consecutive patched instructions that call Fix43Y
             int call = b.FindIndex(x => x.StartsWith("Call") && x.Contains("CameraController::Fix43Y"));
-            checks.Check(call >= 4, "Fix43Y is called from LateUpdate");
-            if (call >= 4 && b.Count == a.Count + 6)
+            checks.Check(call >= 6, "Fix43Y is called from LateUpdate");
+            if (call >= 6 && b.Count == a.Count + 8)
             {
-                int start = call - 4;
-                var shape = new[] { "Ldloca_S", "Ldarg_0", "Ldloca_S", "Ldfld", "Call", "Stfld" };
-                bool shapeOk = Enumerable.Range(0, 6).All(k => b[start + k].StartsWith(shape[k]));
-                checks.Check(shapeOk, "inserted block is position.y = Fix43Y(position.y)");
-                checks.Check(b[start + 3].Contains("Vector3::y") && b[start + 5].Contains("Vector3::y"), "reads and writes Vector3.y");
+                int start = call - 6;
+                var shape = new[] { "Ldarg_0", "Ldflda", "Ldarg_0", "Ldarg_0", "Ldflda", "Ldfld", "Call", "Stfld" };
+                bool shapeOk = Enumerable.Range(0, 8).All(k => b[start + k].StartsWith(shape[k]));
+                checks.Check(shapeOk, "inserted block is destination.y = Fix43Y(destination.y)");
+                checks.Check(b[start + 5].Contains("Vector3::y") && b[start + 7].Contains("Vector3::y"), "reads and writes Vector3.y");
                 // without the block, instructions are identical in order and every branch target maps
                 // to the same original target (a target equal to the block start maps to the join point)
-                var stripped = b.Take(start).Concat(b.Skip(start + 6)).ToList();
-                int Map(int target) => target > start ? target - 6 : target; // target==start -> start == original join index
+                var stripped = b.Take(start).Concat(b.Skip(start + 8)).ToList();
+                int Map(int target) => target > start ? target - 8 : target; // target==start -> start == original join index
                 bool same = stripped.Count == a.Count;
                 int retargets = 0, bad = 0;
                 for (int i = 0; same && i < a.Count; i++)
@@ -128,11 +128,6 @@ public sealed class SemanticVerifier
                 }
                 checks.Check(same && bad == 0, $"all other instructions and branch targets identical to the original ({bad} mismatches)");
                 checks.Check(retargets >= 1, $"{retargets} branch(es) into the join point now run the new block");
-                // the AllowExitingSceneBounds skip must still jump over it
-                var lpIns = lp.Body.Instructions;
-                var allow = lpIns.First(i => i.OpCode == OpCodes.Call && ((MethodReference)i.Operand).Name == "get_AllowExitingSceneBounds");
-                var skipTarget = (Instruction)allow.Next.Operand;
-                checks.Check(lpIns.IndexOf(skipTarget) == start + 6, "AllowExitingSceneBounds still skips the block");
             }
             // the original clamp literals are still there (we did not move the 16:9 bounds)
             checks.Check(lp.Body.Instructions.Count(i => i.OpCode == OpCodes.Ldc_R4 && (float)i.Operand == 8.3f) == 2 &&
